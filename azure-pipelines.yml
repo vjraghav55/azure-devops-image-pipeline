@@ -3,7 +3,7 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
-- main
+- none
 
 resources:
 - repo: self
@@ -41,8 +41,11 @@ stages:
             tags: |
               $(tag)
    
-        - upload: manifests
-          artifact: manifests
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            ArtifactName: 'manifests'
+            publishLocation: 'Container'
 
   - stage: Deploy
     displayName: Deploy stage
@@ -68,11 +71,10 @@ stages:
             - task: KubernetesManifest@0
               displayName: Deploy to Kubernetes cluster
               inputs:
-                action: deploy
+                action: 'deploy'
+                kubernetesServiceConnection: 'aks-trial-default'
                 manifests: |
                   $(Pipeline.Workspace)/manifests/deployment.yml
                   $(Pipeline.Workspace)/manifests/service.yml
-                imagePullSecrets: |
-                  $(imagePullSecret)
-                containers: |
-                  $(containerRegistry)/$(imageRepository):$(tag)
+                containers: '$(containerRegistry)/$(imageRepository):$(tag)'
+                imagePullSecrets: '$(imagePullSecret)'
